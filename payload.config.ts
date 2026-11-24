@@ -4,6 +4,11 @@ import { buildConfig } from "payload"
 import { postgresAdapter } from "@payloadcms/db-postgres"
 import { vercelBlobStorage } from "@payloadcms/storage-vercel-blob"
 import { lexicalEditor, FixedToolbarFeature } from "@payloadcms/richtext-lexical"
+import { revalidateSite } from "@/lib/revalidate"
+
+const revalidateOnPublish = ({ doc }: { doc: Record<string, unknown> }) => {
+  if (doc._status === "published") revalidateSite()
+}
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
@@ -97,7 +102,7 @@ export default buildConfig({
     {
       slug: "people",
       versions: { drafts: true },
-      hooks: { beforeChange: [preventEditorPublish] },
+      hooks: { beforeChange: [preventEditorPublish], afterChange: [revalidateOnPublish] },
       access: {
         read: () => true,
         create: ({ req }) => !!req.user,
@@ -234,7 +239,7 @@ export default buildConfig({
     {
       slug: "publications",
       versions: { drafts: true },
-      hooks: { beforeChange: [preventEditorPublish] },
+      hooks: { beforeChange: [preventEditorPublish], afterChange: [revalidateOnPublish] },
       access: {
         read: () => true,
         create: ({ req }) => !!req.user,
@@ -273,7 +278,7 @@ export default buildConfig({
     {
       slug: "projects",
       versions: { drafts: true },
-      hooks: { beforeChange: [preventEditorPublish] },
+      hooks: { beforeChange: [preventEditorPublish], afterChange: [revalidateOnPublish] },
       access: {
         read: () => true,
         create: ({ req }) => !!req.user,
@@ -311,7 +316,7 @@ export default buildConfig({
     {
       slug: "hero-slides",
       versions: { drafts: true },
-      hooks: { beforeChange: [preventEditorPublish] },
+      hooks: { beforeChange: [preventEditorPublish], afterChange: [revalidateOnPublish] },
       access: {
         read: () => true,
         create: ({ req }) => !!req.user,
@@ -335,7 +340,7 @@ export default buildConfig({
     {
       slug: "news",
       versions: { drafts: true },
-      hooks: { beforeChange: [preventEditorPublish] },
+      hooks: { beforeChange: [preventEditorPublish], afterChange: [revalidateOnPublish] },
       access: {
         read: () => true,
         create: ({ req }) => !!req.user,
@@ -370,7 +375,7 @@ export default buildConfig({
     {
       slug: "opportunities",
       versions: { drafts: true },
-      hooks: { beforeChange: [preventEditorPublish] },
+      hooks: { beforeChange: [preventEditorPublish], afterChange: [revalidateOnPublish] },
       access: {
         read: () => true,
         create: ({ req }) => !!req.user,
@@ -388,7 +393,14 @@ export default buildConfig({
     {
       slug: "posts",
       versions: { drafts: true },
-      hooks: { beforeChange: [preventEditorPublish] },
+      hooks: {
+        beforeChange: [preventEditorPublish],
+        afterChange: [
+          ({ doc }: { doc: Record<string, unknown> }) => {
+            if (doc._status === "published") revalidateSite(doc.slug as string)
+          },
+        ],
+      },
       access: {
         read: () => true,
         create: ({ req }) => !!req.user,
@@ -448,7 +460,7 @@ export default buildConfig({
     {
       slug: "lab-photos",
       versions: { drafts: true },
-      hooks: { beforeChange: [preventEditorPublish] },
+      hooks: { beforeChange: [preventEditorPublish], afterChange: [revalidateOnPublish] },
       access: {
         read: () => true,
         create: ({ req }) => !!req.user,
@@ -469,6 +481,7 @@ export default buildConfig({
   globals: [
     {
       slug: "site-settings",
+      hooks: { afterChange: [() => revalidateSite()] },
       access: {
         read: () => true,
         update: ({ req }) => isAdmin(req),
