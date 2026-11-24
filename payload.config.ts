@@ -15,6 +15,12 @@ const dirname = path.dirname(filename)
 const isAdmin = (req: { user?: unknown } | undefined) =>
   (req?.user as { role?: string } | null)?.role === "admin"
 
+const loggedIn = ({ req }: { req: { user?: unknown } }) => !!req.user
+
+// Applies to the REST/GraphQL API only — the site renders via the Local API, which bypasses access control
+const publishedOrLoggedIn = ({ req }: { req: { user?: unknown } }) =>
+  req.user ? true : { _status: { equals: "published" as const } }
+
 // Prevent editors from publishing or unpublishing — only admins can change _status
 const preventEditorPublish = ({
   data,
@@ -104,7 +110,7 @@ export default buildConfig({
       versions: { drafts: true },
       hooks: { beforeChange: [preventEditorPublish], afterChange: [revalidateOnPublish] },
       access: {
-        read: () => true,
+        read: publishedOrLoggedIn,
         create: ({ req }) => !!req.user,
         update: ({ req }) => !!req.user,
         delete: ({ req }) => isAdmin(req),
@@ -127,6 +133,7 @@ export default buildConfig({
           type: "text",
           required: true,
           label: "Last Name",
+          access: { read: loggedIn },
           admin: { description: "Full last name (e.g. Gu, Smith, Johnson)" },
         },
         {
@@ -161,7 +168,7 @@ export default buildConfig({
           defaultValue: true,
           admin: { description: "When off, the card is non-interactive and the bio is not shown on the site." },
         },
-        { name: "email", type: "email" },
+        { name: "email", type: "email", access: { read: loggedIn } },
         {
           name: "showEmail",
           type: "checkbox",
@@ -241,7 +248,7 @@ export default buildConfig({
       versions: { drafts: true },
       hooks: { beforeChange: [preventEditorPublish], afterChange: [revalidateOnPublish] },
       access: {
-        read: () => true,
+        read: publishedOrLoggedIn,
         create: ({ req }) => !!req.user,
         update: ({ req }) => !!req.user,
         delete: ({ req }) => isAdmin(req),
@@ -280,7 +287,7 @@ export default buildConfig({
       versions: { drafts: true },
       hooks: { beforeChange: [preventEditorPublish], afterChange: [revalidateOnPublish] },
       access: {
-        read: () => true,
+        read: publishedOrLoggedIn,
         create: ({ req }) => !!req.user,
         update: ({ req }) => !!req.user,
         delete: ({ req }) => isAdmin(req),
@@ -318,7 +325,7 @@ export default buildConfig({
       versions: { drafts: true },
       hooks: { beforeChange: [preventEditorPublish], afterChange: [revalidateOnPublish] },
       access: {
-        read: () => true,
+        read: publishedOrLoggedIn,
         create: ({ req }) => !!req.user,
         update: ({ req }) => !!req.user,
         delete: ({ req }) => isAdmin(req),
@@ -342,7 +349,7 @@ export default buildConfig({
       versions: { drafts: true },
       hooks: { beforeChange: [preventEditorPublish], afterChange: [revalidateOnPublish] },
       access: {
-        read: () => true,
+        read: publishedOrLoggedIn,
         create: ({ req }) => !!req.user,
         update: ({ req }) => !!req.user,
         delete: ({ req }) => isAdmin(req),
@@ -377,7 +384,7 @@ export default buildConfig({
       versions: { drafts: true },
       hooks: { beforeChange: [preventEditorPublish], afterChange: [revalidateOnPublish] },
       access: {
-        read: () => true,
+        read: publishedOrLoggedIn,
         create: ({ req }) => !!req.user,
         update: ({ req }) => !!req.user,
         delete: ({ req }) => isAdmin(req),
@@ -402,7 +409,7 @@ export default buildConfig({
         ],
       },
       access: {
-        read: () => true,
+        read: publishedOrLoggedIn,
         create: ({ req }) => !!req.user,
         update: ({ req }) => !!req.user,
         delete: ({ req }) => isAdmin(req),
@@ -462,7 +469,7 @@ export default buildConfig({
       versions: { drafts: true },
       hooks: { beforeChange: [preventEditorPublish], afterChange: [revalidateOnPublish] },
       access: {
-        read: () => true,
+        read: publishedOrLoggedIn,
         create: ({ req }) => !!req.user,
         update: ({ req }) => !!req.user,
         delete: ({ req }) => isAdmin(req),

@@ -1,7 +1,18 @@
 import { NextRequest, NextResponse } from "next/server"
 import { put } from "@vercel/blob"
+import { getPayload } from "payload"
+import config from "@payload-config"
 
 export const dynamic = "force-dynamic"
+
+function isHost(raw: string, domains: string[]): boolean {
+  try {
+    const { protocol, hostname } = new URL(raw)
+    return protocol === "https:" && domains.some((d) => hostname === d || hostname.endsWith(`.${d}`))
+  } catch {
+    return false
+  }
+}
 
 function og(html: string, prop: string): string | null {
   const a = html.match(new RegExp(`<meta[^>]+property="${prop}"[^>]+content="([^"]*)"`, "i"))
@@ -30,8 +41,15 @@ async function mirrorImage(linkedInImageUrl: string): Promise<string> {
 }
 
 export async function GET(req: NextRequest) {
+  const payload = await getPayload({ config })
+  const { user } = await payload.auth({ headers: req.headers })
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
   const url = req.nextUrl.searchParams.get("url")
   if (!url) return NextResponse.json({ error: "Missing url" }, { status: 400 })
+  if (!isHost(url, ["linkedin.com"])) {
+    return NextResponse.json({ error: "Only linkedin.com URLs are supported" }, { status: 400 })
+  }
 
   const res = await fetch(url, {
     headers: {
@@ -43,11 +61,15 @@ export async function GET(req: NextRequest) {
   })
 
   if (!res.ok) return NextResponse.json({ error: `LinkedIn returned ${res.status}` }, { status: 502 })
+  if (!isHost(res.url, ["linkedin.com"])) {
+    return NextResponse.json({ error: "LinkedIn redirected off-site" }, { status: 502 })
+  }
 
   const html = await res.text()
   const rawTitle = og(html, "og:title")           // e.g. "#electrolyte #battery | Frank Gu"
   const description = og(html, "og:description")  // the actual post text
-  const linkedInImageUrl = og(html, "og:image")
+  const ogImage = og(html, "og:image")
+  const linkedInImageUrl = ogImage && isHost(ogImage, ["licdn.com", "linkedin.com"]) ? ogImage : null
 
   // og:title is formatted as "<hashtags/topic> | Author Name"
   const authorName = rawTitle?.includes(" | ") ? rawTitle.split(" | ").pop()?.trim() ?? null : null
