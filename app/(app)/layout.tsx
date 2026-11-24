@@ -18,6 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const title = `${s.labName} | ${s.piName} Lab, ${s.institution}`
   const description = `${s.missionStatement} ${s.heroSubtitle}`
   return {
+    metadataBase: new URL(`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL ?? "www.frankgulab.com"}`),
     title,
     description,
     icons: { icon: "/fgl-logo.svg" },
