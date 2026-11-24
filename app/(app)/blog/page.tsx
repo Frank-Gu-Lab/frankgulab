@@ -9,7 +9,7 @@ import { notFound } from "next/navigation"
 
 const SITE_URL = "https://frankgulab.com"
 
-export const dynamic = "force-dynamic"
+export const revalidate = 3600
 
 export default async function BlogListPage() {
   const payload = await getPayload({ config })

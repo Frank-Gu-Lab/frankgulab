@@ -21,6 +21,24 @@ const nextConfig: NextConfig = {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [{ protocol: "https", hostname: "**" }],
   },
+  async headers() {
+    return [
+      {
+        // Cache Payload media files at the CDN edge for 1 year.
+        // Files are content-addressed (new upload = new filename), so immutable is safe.
+        source: "/api/media/file/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
+      },
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
+      },
+    ]
+  },
 }
 
 export default withPayload(nextConfig)

@@ -9,7 +9,7 @@ import { Blog } from "@/components/sections/blog"
 import { Opportunities } from "@/components/sections/opportunities"
 import { Contact } from "@/components/sections/contact"
 
-export const dynamic = "force-dynamic"
+export const revalidate = 3600
 
 export default function HomePage() {
   return (
