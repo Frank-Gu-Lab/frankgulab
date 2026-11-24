@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import Image from "next/image"
 import Link from "next/link"
 import { notFound } from "next/navigation"
@@ -8,6 +9,7 @@ import type { SerializedEditorState } from "lexical"
 import { Linkedin } from "lucide-react"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
+import { getSiteSettings } from "@/lib/site-settings"
 
 export const revalidate = 3600
 
@@ -16,6 +18,45 @@ interface Props {
 }
 
 const SITE_URL = "https://frankgulab.com"
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params
+  const payload = await getPayload({ config })
+  const { docs } = await payload.find({
+    collection: "posts",
+    limit: 1,
+    where: { and: [{ slug: { equals: slug } }, { _status: { equals: "published" } }] },
+  })
+  const doc = docs[0]
+  if (!doc) return {}
+
+  const s = await getSiteSettings()
+  const title = `${doc.title} | ${s.labName}`
+  const description = (doc.excerpt as string | null) ?? s.missionStatement
+  const cover =
+    doc.coverImage && typeof doc.coverImage === "object"
+      ? ((doc.coverImage as { url?: string | null }).url ?? null)
+      : null
+  const images = cover
+    ? [{ url: cover, alt: doc.title }]
+    : [{ url: "/api/og", width: 1200, height: 630, alt: title }]
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `/blog/${slug}` },
+    openGraph: {
+      title,
+      description,
+      siteName: s.labName,
+      type: "article",
+      url: `/blog/${slug}`,
+      publishedTime: (doc.publishedAt as string | null) ?? undefined,
+      images,
+    },
+    twitter: { card: "summary_large_image", title, description, images: images.map((i) => i.url) },
+  }
+}
 
 export default async function BlogPostPage({ params }: Props) {
   const { slug } = await params

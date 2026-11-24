@@ -6,8 +6,21 @@ import { vercelBlobStorage } from "@payloadcms/storage-vercel-blob"
 import { lexicalEditor, FixedToolbarFeature } from "@payloadcms/richtext-lexical"
 import { revalidateSite } from "@/lib/revalidate"
 
-const revalidateOnPublish = ({ doc }: { doc: Record<string, unknown> }) => {
-  if (doc._status === "published") revalidateSite()
+type HookArgs = { doc: Record<string, unknown>; previousDoc?: Record<string, unknown> }
+
+const wasOrIsPublished = ({ doc, previousDoc }: HookArgs) =>
+  doc._status === "published" || previousDoc?._status === "published"
+
+// Covers publish, unpublish (previousDoc was published) and delete (afterDelete passes the deleted doc)
+const revalidateOnPublish = (args: HookArgs) => {
+  if (wasOrIsPublished(args)) revalidateSite()
+}
+
+const revalidatePost = (args: HookArgs) => {
+  if (!wasOrIsPublished(args)) return
+  revalidateSite(args.doc.slug as string)
+  const oldSlug = args.previousDoc?.slug
+  if (oldSlug && oldSlug !== args.doc.slug) revalidateSite(oldSlug as string)
 }
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -108,7 +121,7 @@ export default buildConfig({
     {
       slug: "people",
       versions: { drafts: true },
-      hooks: { beforeChange: [preventEditorPublish], afterChange: [revalidateOnPublish] },
+      hooks: { beforeChange: [preventEditorPublish], afterChange: [revalidateOnPublish], afterDelete: [revalidateOnPublish] },
       access: {
         read: publishedOrLoggedIn,
         create: ({ req }) => !!req.user,
@@ -246,7 +259,7 @@ export default buildConfig({
     {
       slug: "publications",
       versions: { drafts: true },
-      hooks: { beforeChange: [preventEditorPublish], afterChange: [revalidateOnPublish] },
+      hooks: { beforeChange: [preventEditorPublish], afterChange: [revalidateOnPublish], afterDelete: [revalidateOnPublish] },
       access: {
         read: publishedOrLoggedIn,
         create: ({ req }) => !!req.user,
@@ -285,7 +298,7 @@ export default buildConfig({
     {
       slug: "projects",
       versions: { drafts: true },
-      hooks: { beforeChange: [preventEditorPublish], afterChange: [revalidateOnPublish] },
+      hooks: { beforeChange: [preventEditorPublish], afterChange: [revalidateOnPublish], afterDelete: [revalidateOnPublish] },
       access: {
         read: publishedOrLoggedIn,
         create: ({ req }) => !!req.user,
@@ -323,7 +336,7 @@ export default buildConfig({
     {
       slug: "hero-slides",
       versions: { drafts: true },
-      hooks: { beforeChange: [preventEditorPublish], afterChange: [revalidateOnPublish] },
+      hooks: { beforeChange: [preventEditorPublish], afterChange: [revalidateOnPublish], afterDelete: [revalidateOnPublish] },
       access: {
         read: publishedOrLoggedIn,
         create: ({ req }) => !!req.user,
@@ -347,7 +360,7 @@ export default buildConfig({
     {
       slug: "news",
       versions: { drafts: true },
-      hooks: { beforeChange: [preventEditorPublish], afterChange: [revalidateOnPublish] },
+      hooks: { beforeChange: [preventEditorPublish], afterChange: [revalidateOnPublish], afterDelete: [revalidateOnPublish] },
       access: {
         read: publishedOrLoggedIn,
         create: ({ req }) => !!req.user,
@@ -382,7 +395,7 @@ export default buildConfig({
     {
       slug: "opportunities",
       versions: { drafts: true },
-      hooks: { beforeChange: [preventEditorPublish], afterChange: [revalidateOnPublish] },
+      hooks: { beforeChange: [preventEditorPublish], afterChange: [revalidateOnPublish], afterDelete: [revalidateOnPublish] },
       access: {
         read: publishedOrLoggedIn,
         create: ({ req }) => !!req.user,
@@ -402,11 +415,8 @@ export default buildConfig({
       versions: { drafts: true },
       hooks: {
         beforeChange: [preventEditorPublish],
-        afterChange: [
-          ({ doc }: { doc: Record<string, unknown> }) => {
-            if (doc._status === "published") revalidateSite(doc.slug as string)
-          },
-        ],
+        afterChange: [revalidatePost],
+        afterDelete: [revalidatePost],
       },
       access: {
         read: publishedOrLoggedIn,
@@ -467,7 +477,7 @@ export default buildConfig({
     {
       slug: "lab-photos",
       versions: { drafts: true },
-      hooks: { beforeChange: [preventEditorPublish], afterChange: [revalidateOnPublish] },
+      hooks: { beforeChange: [preventEditorPublish], afterChange: [revalidateOnPublish], afterDelete: [revalidateOnPublish] },
       access: {
         read: publishedOrLoggedIn,
         create: ({ req }) => !!req.user,

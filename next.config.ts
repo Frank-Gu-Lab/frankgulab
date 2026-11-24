@@ -19,7 +19,8 @@ if (fs.existsSync(envPath)) {
 const nextConfig: NextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
-    remotePatterns: [{ protocol: "https", hostname: "**" }],
+    // Only our own Blob store — external images (news, publication covers) render via plain <img>
+    remotePatterns: [{ protocol: "https", hostname: "*.public.blob.vercel-storage.com" }],
   },
   async headers() {
     return [
